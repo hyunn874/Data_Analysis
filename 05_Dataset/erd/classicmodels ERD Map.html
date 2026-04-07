@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>classicmodels ERD Map</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0d1117;
+    font-family: 'Noto Sans KR', sans-serif;
+    padding: 30px 40px 60px;
+    color: #e6edf3;
+  }
+  h1 {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    color: #58a6ff;
+    letter-spacing: 3px;
+    margin-bottom: 28px;
+    text-transform: uppercase;
+  }
+
+  /* ── 전체 캔버스: 3컬럼 × 3행 그리드 ── */
+  .canvas {
+    position: relative;
+    width: 1380px;
+    height: 1200px;
+    margin: 0 auto;
+  }
+
+  svg.arrows {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    overflow: visible;
+  }
+
+  .tbl {
+    position: absolute;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    overflow: hidden;
+    z-index: 1;
+    width: 250px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    transition: box-shadow .2s;
+  }
+  .tbl:hover {
+    box-shadow: 0 6px 32px rgba(88,166,255,0.2);
+    border-color: #58a6ff66;
+  }
+
+  .tbl-head {
+    padding: 9px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-align: center;
+    text-transform: uppercase;
+    color: #fff;
+  }
+
+  .col {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    align-items: center;
+    padding: 4px 11px;
+    gap: 5px;
+    font-size: 10.5px;
+    border-bottom: 1px solid #21262d;
+    min-height: 25px;
+  }
+  .col:last-child { border-bottom: none; }
+  .col:hover { background: #1f2937; }
+  .col.pk-row { background: #0b2818; }
+  .col.fk-row { background: #0b1d30; }
+
+  .badge {
+    font-size: 7.5px;
+    font-weight: 700;
+    padding: 2px 4px;
+    border-radius: 3px;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .pk { background: #1a7f4f; color: #7ee787; border: 1px solid #2ea043; }
+  .fk { background: #1158a0; color: #79c0ff; border: 1px solid #1f6feb; }
+  .no { width: 20px; }
+
+  .col-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: #c9d1d9;
+    font-weight: 500;
+  }
+  .col-name.pk-name { color: #7ee787; }
+  .col-name.fk-name { color: #79c0ff; }
+  .col-desc { font-size: 9px; color: #6e7681; text-align: right; white-space: nowrap; }
+
+  /* 테이블 헤더 색상 */
+  .h-customers    { background: linear-gradient(90deg,#1a56a0,#1f6feb); }
+  .h-orders       { background: linear-gradient(90deg,#5a2d9e,#8957e5); }
+  .h-orderdetails { background: linear-gradient(90deg,#9e2d5a,#da3a6a); }
+  .h-products     { background: linear-gradient(90deg,#1a7f4f,#2ea043); }
+  .h-productlines { background: linear-gradient(90deg,#9e5a1a,#d4812a); }
+  .h-employees    { background: linear-gradient(90deg,#9e2d2d,#cf3a3a); }
+  .h-offices      { background: linear-gradient(90deg,#1a7a9e,#2aa0cc); }
+  .h-payments     { background: linear-gradient(90deg,#5a1a9e,#8a3fd4); }
+
+  .rel-tag {
+    position: absolute;
+    font-size: 9.5px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    color: #f78166;
+    background: #0d1117;
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid #f78166;
+    z-index: 5;
+  }
+
+  .legend {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    margin-top: 28px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    color: #8b949e;
+  }
+
+  /* JOIN 경로 요약 박스 */
+  .summary {
+    width: 1380px;
+    margin: 20px auto 0;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 18px 28px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #8b949e;
+    line-height: 2;
+  }
+  .summary span { color: #58a6ff; }
+  .summary .title { color: #e6edf3; font-size: 12px; font-weight: 700; margin-bottom: 8px; display: block; }
+</style>
+</head>
+<body>
+
+<h1>⚙ classicmodels — ERD Table Map</h1>
+
+<!--
+  레이아웃 설계 (겹침 없음)
+  col1=30   col2=370   col3=710   col4=1050
+
+  row1: customers(30,40)   orders(370,40)   orderdetails(710,40)   productlines(1050,40)
+  row2:                                     products(710,400)
+  row3: payments(30,560)   offices(370,700) employees(710,700)
+-->
+
+<div class="canvas">
+
+<svg class="arrows">
+  <defs>
+    <marker id="a-blue" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#58a6ff" opacity=".85"/>
+    </marker>
+    <marker id="a-green" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#2ea043" opacity=".85"/>
+    </marker>
+    <marker id="a-red" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#f78166" opacity=".85"/>
+    </marker>
+    <marker id="a-purple" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#8957e5" opacity=".85"/>
+    </marker>
+    <marker id="a-cyan" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#2aa0cc" opacity=".85"/>
+    </marker>
+  </defs>
+
+  <!-- 1. customers → orders (가로) -->
+  <line x1="280" y1="100" x2="368" y2="100"
+        stroke="#58a6ff" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#a-blue)"/>
+
+  <!-- 2. orders → orderdetails (가로) -->
+  <line x1="620" y1="100" x2="708" y2="100"
+        stroke="#58a6ff" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#a-blue)"/>
+
+  <!-- 3. orderdetails → products (수직 아래) -->
+  <line x1="835" y1="218" x2="835" y2="398"
+        stroke="#58a6ff" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#a-blue)"/>
+
+  <!-- 4. products → productlines (가로) -->
+  <line x1="960" y1="475" x2="1048" y2="475"
+        stroke="#2ea043" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#a-green)"/>
+
+  <!-- 5. customers → payments (수직 아래) -->
+  <line x1="155" y1="402" x2="155" y2="558"
+        stroke="#8957e5" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#a-purple)"/>
+
+  <!-- 6. employees → customers (salesRep) : 빨간 -->
+  <!-- employees(710,700) → 왼쪽으로 → customers 오른쪽 -->
+  <polyline points="710,770 350,770 350,250 280,250"
+        stroke="#f78166" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#a-red)"/>
+
+  <!-- 7. employees → offices (아래로) -->
+  <!-- employees(710,700) → offices(370,700) -->
+  <polyline points="710,820 620,820 620,860 480,860 480,830 368,830"
+        stroke="#2aa0cc" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#a-cyan)"/>
+
+  <!-- 8. employees self join -->
+  <path d="M 960 730 Q 1040 710 1040 760 Q 1040 810 960 800"
+        stroke="#f78166" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#a-red)"/>
+
+</svg>
+
+<!-- 관계 레이블 -->
+<div class="rel-tag" style="left:298px; top:88px;">1:N</div>
+<div class="rel-tag" style="left:638px; top:88px;">1:N</div>
+<div class="rel-tag" style="left:823px; top:300px;">N:1</div>
+<div class="rel-tag" style="left:990px; top:463px;">1:N</div>
+<div class="rel-tag" style="left:143px; top:468px;">1:N</div>
+<div class="rel-tag" style="left:268px; top:238px;">1:N</div>
+<div class="rel-tag" style="left:1022px; top:754px; border-color:#f78166; color:#f78166;">Self</div>
+
+<!-- ① customers  left:30, top:40 -->
+<div class="tbl" style="left:30px; top:40px;">
+  <div class="tbl-head h-customers">👤 customers</div>
+  <div>
+    <div class="col pk-row"><span class="badge pk">PK</span><span class="col-name pk-name">customerNumber</span><span class="col-desc">고객번호</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">customerName</span><span class="col-desc">고객명</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">contactLastName</span><span class="col-desc">담당자 성</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">contactFirstName</span><span class="col-desc">담당자 이름</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">phone</span><span class="col-desc">전화번호</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">addressLine1</span><span class="col-desc">주소1</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">addressLine2</span><span class="col-desc">주소2</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">city</span><span class="col-desc">도시</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">state</span><span class="col-desc">주/도</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">postalCode</span><span class="col-desc">우편번호</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">country</span><span class="col-desc">국가</span></div>
+    <div class="col fk-row"><span class="badge fk">FK</span><span class="col-name fk-name">salesRepEmployeeNumber</span><span class="col-desc">담당직원</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">creditLimit</span><span class="col-desc">신용한도</span></div>
+  </div>
+</div>
+
+<!-- ② orders  left:370, top:40 -->
+<div class="tbl" style="left:370px; top:40px;">
+  <div class="tbl-head h-orders">📦 orders</div>
+  <div>
+    <div class="col pk-row"><span class="badge pk">PK</span><span class="col-name pk-name">orderNumber</span><span class="col-desc">주문번호</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">orderDate</span><span class="col-desc">주문일자</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">requiredDate</span><span class="col-desc">요청납기일</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">shippedDate</span><span class="col-desc">배송일자</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">status</span><span class="col-desc">주문상태</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">comments</span><span class="col-desc">비고</span></div>
+    <div class="col fk-row"><span class="badge fk">FK</span><span class="col-name fk-name">customerNumber</span><span class="col-desc">고객번호</span></div>
+  </div>
+</div>
+
+<!-- ③ orderdetails  left:710, top:40 -->
+<div class="tbl" style="left:710px; top:40px;">
+  <div class="tbl-head h-orderdetails">🧾 orderdetails</div>
+  <div>
+    <div class="col pk-row"><span class="badge pk">PK</span><span class="col-name pk-name">orderNumber</span><span class="col-desc">주문번호</span></div>
+    <div class="col pk-row"><span class="badge pk">PK</span><span class="col-name pk-name">productCode</span><span class="col-desc">제품코드</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">quantityOrdered</span><span class="col-desc">주문수량</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">priceEach</span><span class="col-desc">개당판매가</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">orderLineNumber</span><span class="col-desc">주문라인번호</span></div>
+  </div>
+</div>
+
+<!-- ④ productlines  left:1050, top:40 -->
+<div class="tbl" style="left:1050px; top:40px;">
+  <div class="tbl-head h-productlines">📂 productlines</div>
+  <div>
+    <div class="col pk-row"><span class="badge pk">PK</span><span class="col-name pk-name">productLine</span><span class="col-desc">제품라인코드</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">textDescription</span><span class="col-desc">텍스트설명</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">htmlDescription</span><span class="col-desc">HTML설명</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">image</span><span class="col-desc">이미지</span></div>
+  </div>
+</div>
+
+<!-- ⑤ products  left:710, top:400 -->
+<div class="tbl" style="left:710px; top:400px;">
+  <div class="tbl-head h-products">🏷️ products</div>
+  <div>
+    <div class="col pk-row"><span class="badge pk">PK</span><span class="col-name pk-name">productCode</span><span class="col-desc">제품코드</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">productName</span><span class="col-desc">제품명</span></div>
+    <div class="col fk-row"><span class="badge fk">FK</span><span class="col-name fk-name">productLine</span><span class="col-desc">제품라인</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">productScale</span><span class="col-desc">제품규모</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">productVendor</span><span class="col-desc">공급업체</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">productDescription</span><span class="col-desc">제품설명</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">quantityInStock</span><span class="col-desc">재고수량</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">buyPrice</span><span class="col-desc">구매원가</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">MSRP</span><span class="col-desc">권장소비자가</span></div>
+  </div>
+</div>
+
+<!-- ⑥ payments  left:30, top:560 -->
+<div class="tbl" style="left:30px; top:560px;">
+  <div class="tbl-head h-payments">💳 payments</div>
+  <div>
+    <div class="col pk-row"><span class="badge pk">PK</span><span class="col-name pk-name">customerNumber</span><span class="col-desc">고객번호</span></div>
+    <div class="col pk-row"><span class="badge pk">PK</span><span class="col-name pk-name">checkNumber</span><span class="col-desc">수표번호</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">paymentDate</span><span class="col-desc">결제일자</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">amount</span><span class="col-desc">결제금액</span></div>
+  </div>
+</div>
+
+<!-- ⑦ employees  left:710, top:700 -->
+<div class="tbl" style="left:710px; top:700px;">
+  <div class="tbl-head h-employees">👨‍💼 employees</div>
+  <div>
+    <div class="col pk-row"><span class="badge pk">PK</span><span class="col-name pk-name">employeeNumber</span><span class="col-desc">직원번호</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">lastName</span><span class="col-desc">성</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">firstName</span><span class="col-desc">이름</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">extension</span><span class="col-desc">내선번호</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">email</span><span class="col-desc">이메일</span></div>
+    <div class="col fk-row"><span class="badge fk">FK</span><span class="col-name fk-name">officeCode</span><span class="col-desc">사무소코드</span></div>
+    <div class="col fk-row"><span class="badge fk">FK</span><span class="col-name fk-name">reportsTo</span><span class="col-desc">상사직원번호</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">jobTitle</span><span class="col-desc">직책</span></div>
+  </div>
+</div>
+
+<!-- ⑧ offices  left:370, top:700 -->
+<div class="tbl" style="left:370px; top:700px; width:250px;">
+  <div class="tbl-head h-offices">🏢 offices</div>
+  <div>
+    <div class="col pk-row"><span class="badge pk">PK</span><span class="col-name pk-name">officeCode</span><span class="col-desc">사무소코드</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">city</span><span class="col-desc">도시</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">phone</span><span class="col-desc">전화번호</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">addressLine1</span><span class="col-desc">주소1</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">addressLine2</span><span class="col-desc">주소2</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">state</span><span class="col-desc">주/도</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">country</span><span class="col-desc">국가</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">postalCode</span><span class="col-desc">우편번호</span></div>
+    <div class="col"><span class="no"></span><span class="col-name">territory</span><span class="col-desc">담당구역</span></div>
+  </div>
+</div>
+
+</div><!-- /canvas -->
+
+<!-- JOIN 경로 요약 -->
+<div class="summary">
+  <span class="title">🔗 JOIN 연결 경로 요약</span>
+  <span style="color:#58a6ff">주문 분석:</span>  customers → orders → orderdetails → products → productlines &nbsp;&nbsp;&nbsp;
+  <span style="color:#8957e5">결제 분석:</span>  customers → payments<br>
+  <span style="color:#f78166">직원 분석:</span>  employees → customers (salesRepEmployeeNumber) &nbsp;&nbsp;&nbsp;
+  <span style="color:#2aa0cc">조직 분석:</span>  employees → offices (officeCode)<br>
+  <span style="color:#f78166">계층 구조:</span>  employees → employees (Self JOIN: reportsTo = employeeNumber) &nbsp;&nbsp;&nbsp;
+  <span style="color:#2ea043">매출액 공식:</span>  quantityOrdered × priceEach
+</div>
+
+<!-- 범례 -->
+<div class="legend">
+  <div class="legend-item"><span class="badge pk" style="font-size:8px">PK</span> Primary Key 기본키</div>
+  <div class="legend-item"><span class="badge fk" style="font-size:8px">FK</span> Foreign Key 외래키</div>
+  <div class="legend-item">
+    <svg width="36" height="10"><line x1="0" y1="5" x2="28" y2="5" stroke="#58a6ff" stroke-width="1.5" stroke-dasharray="4,2"/><polygon points="26,2 34,5 26,8" fill="#58a6ff"/></svg>
+    테이블 관계
+  </div>
+  <div class="legend-item">
+    <svg width="36" height="10"><line x1="0" y1="5" x2="28" y2="5" stroke="#f78166" stroke-width="1.5" stroke-dasharray="4,2"/><polygon points="26,2 34,5 26,8" fill="#f78166"/></svg>
+    직원 관계 / Self JOIN
+  </div>
+  <div class="legend-item" style="color:#7ee787">● 녹색 행 = PK</div>
+  <div class="legend-item" style="color:#79c0ff">● 파란 행 = FK</div>
+</div>
+
+</body>
+</html>
